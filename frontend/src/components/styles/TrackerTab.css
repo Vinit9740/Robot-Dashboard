@@ -1,0 +1,259 @@
+.tracker-tab-v2 {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    height: 100%;
+}
+
+.tracker-container-v2 {
+    display: flex;
+    gap: 24px;
+    flex: 1;
+    min-height: 0;
+}
+
+.map-section-v2 {
+    flex: 2;
+    background: var(--bg-sidebar) !important;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.map-visualization-v2 {
+    flex: 1;
+    position: relative;
+    background: radial-gradient(circle at 50% 50%, #f1f5f9 0%, #e2e8f0 100%);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.tracker-map-v2 {
+    width: 100%;
+    height: 100%;
+}
+
+.glow-circle {
+    animation: markerPulse 2.5s infinite ease-in-out;
+}
+
+@keyframes markerPulse {
+    0% {
+        transform: scale(1);
+        opacity: 0.4;
+    }
+
+    50% {
+        transform: scale(1.1);
+        opacity: 0.6;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 0.4;
+    }
+}
+
+.map-controls-v2 {
+    margin-top: 16px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.legend-v2 {
+    display: flex;
+    gap: 16px;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.legend-item-v2 {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #444;
+}
+
+.dot.online {
+    background: var(--primary);
+    box-shadow: 0 0 8px var(--primary-glow);
+}
+
+/* Sidebar */
+.fleet-status-sidebar {
+    flex: 1;
+    max-width: 320px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.fleet-status-sidebar h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    letter-spacing: -0.5px;
+}
+
+.fleet-metrics-v2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.fleet-stat-v2 {
+    background: #f8fafc;
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+}
+
+.fleet-stat-v2 label {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+}
+
+.fleet-stat-v2 .val {
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.fleet-stat-v2 .val.online {
+    color: var(--primary);
+}
+
+.live-robot-list-v2 {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.live-robot-card-v2 {
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.live-robot-card-v2:hover {
+    background: var(--border-color);
+}
+
+.live-robot-card-v2.active {
+    background: var(--primary-glow);
+    border-color: var(--primary);
+}
+
+.live-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+}
+
+.status-dot-v2 {
+    width: 6px;
+    height: 6px;
+    background: #555;
+    border-radius: 50%;
+}
+
+.status-dot-v2.online {
+    background: var(--primary);
+    box-shadow: 0 0 6px var(--primary);
+}
+
+.live-stats {
+    margin-top: 8px;
+    display: flex;
+    gap: 12px;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+/* Detail Pane */
+.telemetry-detail-pane {
+    position: absolute;
+    bottom: 40px;
+    right: 40px;
+    width: 300px;
+    padding: 20px;
+    z-index: 10;
+    animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.pane-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.pane-header h4 {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--accent);
+}
+
+.pane-header button {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+}
+
+.diagnostics-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.diag-item label {
+    display: block;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+}
+
+.diag-item p {
+    margin: 0;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.mini-progress {
+    height: 4px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 2px;
+    margin-top: 8px;
+}
+
+.mini-progress div {
+    height: 100%;
+    border-radius: 2px;
+}
