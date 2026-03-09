@@ -4,11 +4,12 @@ import { createRobot } from '../../services/api';
 import '../styles/HomeTab.css';
 
 const HomeTab = ({ user, token }) => {
-    const { robots, setRobots } = useContext(AppContext);
+    const { robots, setRobots, navigateToTracker, showNotification } = useContext(AppContext);
     const [showCreateForm, setShowCreateForm] = useState(false);
     const [formData, setFormData] = useState({ name: '', model: '' });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [successData, setSuccessData] = useState(null); // { robotName, apiKey }
 
     const calculateHealthScore = (robot) => {
         if (!robot.telemetry) return 0;
@@ -32,17 +33,22 @@ const HomeTab = ({ user, token }) => {
 
         try {
             const newRobotData = await createRobot(formData, token);
-            // The backend returns { robot, apiKey }
             setRobots([...robots, newRobotData.robot]);
+            setSuccessData({ robotName: newRobotData.robot.name, apiKey: newRobotData.apiKey });
             setFormData({ name: '', model: '' });
             setShowCreateForm(false);
-            alert(`Robot Created! API KEY: ${newRobotData.apiKey}\n\nSave this key, it won't be shown again.`);
+            showNotification(`Robot ${newRobotData.robot.name} deployed successfully!`, 'success');
         } catch (err) {
             console.error('❌ Robot deployment failed:', err);
             setError(`Deployment Error: ${err.message}`);
         } finally {
             setLoading(false);
         }
+    };
+
+    const copyToClipboard = (text) => {
+        navigator.clipboard.writeText(text);
+        showNotification('API Key copied to clipboard', 'success');
     };
 
     const getStatusColor = (status) => {
@@ -55,19 +61,22 @@ const HomeTab = ({ user, token }) => {
                 <div className="welcome-text">
                     <h1 className="glow-text">Fleet Overview</h1>
                     <p className="subtitle">
-                        Managing <strong>{robots.length}</strong> active units in your organization.
+                        {robots.length > 0
+                            ? `Managing ${robots.length} assigned unit${robots.length > 1 ? 's' : ''} in the Nexus.`
+                            : 'Establishing secure link... Awaiting robot assignments.'}
                     </p>
                 </div>
                 {user?.app_metadata?.role === 'admin' && (
                     <button
                         className="create-robot-btn-v2"
-                        onClick={() => setShowCreateForm(!showCreateForm)}
+                        onClick={() => setShowCreateForm(true)}
                     >
                         <span>+</span> New Deployment
                     </button>
                 )}
             </div>
 
+            {/* Create Robot Modal */}
             {showCreateForm && (
                 <>
                     <div className="modal-overlay-v2" onClick={() => setShowCreateForm(false)}></div>
@@ -114,11 +123,35 @@ const HomeTab = ({ user, token }) => {
                 </>
             )}
 
+            {/* Success Modal (API Key) */}
+            {successData && (
+                <>
+                    <div className="modal-overlay-v2" onClick={() => setSuccessData(null)}></div>
+                    <div className="create-form-modal glass-card success-modal">
+                        <div className="success-icon-v2">✅</div>
+                        <h3>Deployment Successful</h3>
+                        <p className="success-sub">Secure link established for <strong>{successData.robotName}</strong>.</p>
+
+                        <div className="api-key-display-v2">
+                            <label>Secure API Key (Simulation/Hardware)</label>
+                            <div className="key-box">
+                                <code>{successData.apiKey}</code>
+                                <button onClick={() => copyToClipboard(successData.apiKey)} title="Copy Key">📋</button>
+                            </div>
+                            <p className="warning-text">⚠️ Warning: This key is only shown once. Store it in a secure location.</p>
+                        </div>
+
+                        <button className="primary-btn" onClick={() => setSuccessData(null)}>
+                            Understood
+                        </button>
+                    </div>
+                </>
+            )}
+
             <div className="robots-grid-v2">
                 {robots.map((robot) => {
                     const healthScore = calculateHealthScore(robot);
                     const healthColor = getHealthColor(healthScore);
-                    const statusColor = getStatusColor(robot.status);
 
                     return (
                         <div key={robot.id} className="robot-card-v2 glass-card">
@@ -170,9 +203,9 @@ const HomeTab = ({ user, token }) => {
                                 </span>
                                 <button
                                     className="inspect-btn-v2"
-                                    onClick={() => alert(`Accessing deep diagnostics for ${robot.name}...\n\nStatus: ${robot.status}\nModel: ${robot.model}`)}
+                                    onClick={() => navigateToTracker(robot.id)}
                                 >
-                                    Details
+                                    Track Unit
                                 </button>
                             </div>
                         </div>

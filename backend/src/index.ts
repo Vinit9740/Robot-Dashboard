@@ -5,9 +5,14 @@ import helmet from "helmet";
 import dotenv from "dotenv";
 import authRoutes from "./modules/auth/auth.routes";
 import robotRoutes from "./modules/robots/robots.routes";
+import userRoutes from "./modules/users/user.routes";
 import { initWebSocket } from "./websocket/ws.server";
 
 dotenv.config();
+
+if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    console.error("❌ CRITICAL: SUPABASE_SERVICE_ROLE_KEY is missing! User verification will not work.");
+}
 
 const app = express();
 app.use(cors());
@@ -22,7 +27,7 @@ app.use((req, res, next) => {
 });
 
 app.use("/auth", authRoutes);
-app.use("/auth", authRoutes);
+app.use("/users", userRoutes);
 // Handlers for both singular and plural just in case of frontend mismatches
 app.use("/robot", robotRoutes);
 app.use("/robots", robotRoutes);

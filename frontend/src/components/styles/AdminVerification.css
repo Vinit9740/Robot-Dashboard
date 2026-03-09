@@ -1,0 +1,326 @@
+.admin-v-tab {
+    padding: 30px;
+    animation: slideUp 0.5s ease-out;
+}
+
+.header-flex {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 30px;
+}
+
+.refresh-btn {
+    padding: 10px 20px;
+    background: rgba(125, 82, 244, 0.1);
+    border: 1px solid rgba(125, 82, 244, 0.3);
+    color: var(--primary);
+    border-radius: 12px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.refresh-btn:hover {
+    background: rgba(138, 43, 226, 0.2);
+    border-color: var(--accent-primary);
+    transform: translateY(-2px);
+}
+
+.admin-v-section {
+    margin-bottom: 40px;
+}
+
+.section-title {
+    font-size: 1.2rem;
+    color: var(--text-main);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding-bottom: 10px;
+}
+
+.section-title span {
+    background: rgba(0, 0, 0, 0.05);
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+.pending-user-card {
+    padding: 25px;
+    margin-bottom: 20px;
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.3s ease;
+}
+
+.pending-user-card:hover {
+    box-shadow: var(--shadow-md);
+    border-color: var(--border-hover);
+}
+
+.pending-user-card.has-unsaved {
+    border-color: var(--primary);
+    box-shadow: 0 0 20px rgba(125, 82, 244, 0.1);
+}
+
+.active-card {
+    background: #fdfdfd;
+    border-color: rgba(0, 230, 118, 0.4);
+    box-shadow: 0 4px 12px rgba(0, 230, 118, 0.05);
+}
+
+.card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+}
+
+.email {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.meta-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-top: 5px;
+}
+
+.role-badge {
+    font-size: 0.75rem;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 700;
+}
+
+.role-badge.admin {
+    background: rgba(255, 68, 68, 0.2);
+    color: #ff4444;
+}
+
+.role-badge.user {
+    background: var(--primary-glow);
+    color: var(--primary);
+}
+
+.username {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+.assignment-summary {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    background: rgba(0, 0, 0, 0.05);
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.card-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.edit-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.edit-toggle-btn {
+    padding: 8px 16px;
+    background: var(--primary-glow);
+    color: var(--primary);
+    border: 1px solid var(--border-hover);
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.edit-toggle-btn:hover {
+    background: rgba(138, 43, 226, 0.2);
+    border-color: var(--accent-primary);
+}
+
+.cancel-btn {
+    padding: 8px 16px;
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.cancel-btn:hover:not(:disabled) {
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--text-main);
+}
+
+.action-btn {
+    padding: 10px 24px;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.action-btn.primary {
+    background: var(--primary);
+    color: #ffffff;
+    border: none;
+    box-shadow: 0 4px 12px var(--primary-glow);
+}
+
+.action-btn.primary:hover:not(:disabled) {
+    background: var(--accent);
+    transform: translateY(-2px);
+}
+
+.action-btn.secondary {
+    background: rgba(0, 230, 118, 0.1);
+    color: #00e676;
+    border: 1px solid rgba(0, 230, 118, 0.3);
+}
+
+.action-btn.secondary:hover:not(:disabled) {
+    background: rgba(0, 230, 118, 0.2);
+    border-color: #00e676;
+}
+
+.editing-mode {
+    background: var(--primary-glow);
+    border-color: var(--border-hover);
+}
+
+.assignment-area {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.assignment-area label {
+    display: block;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-bottom: 15px;
+    font-weight: 600;
+}
+
+.change-indicator {
+    color: var(--primary);
+    margin-left: 10px;
+    font-weight: 700;
+    font-style: italic;
+}
+
+.robot-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.robot-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: rgba(0, 0, 0, 0.03);
+    border: 1px solid var(--border-color);
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.2s;
+    user-select: none;
+}
+
+.robot-pill:hover {
+    background: rgba(0, 0, 0, 0.08);
+    border-color: var(--border-hover);
+}
+
+.robot-pill.selected {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+    box-shadow: 0 4px 10px var(--primary-glow);
+}
+
+.no-data {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-muted);
+    font-style: italic;
+    background: rgba(0, 0, 0, 0.01);
+    border: 1px dashed var(--border-color);
+    border-radius: 12px;
+}
+
+.admin-v-error,
+.admin-v-success {
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 25px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.admin-v-error {
+    background: rgba(255, 68, 68, 0.1);
+    color: #ff4444;
+    border: 1px solid rgba(255, 68, 68, 0.2);
+}
+
+.admin-v-success {
+    background: rgba(0, 230, 118, 0.1);
+    color: #00e676;
+    border: 1px solid rgba(0, 230, 118, 0.2);
+}
+
+.admin-v-loading {
+    padding: 60px;
+    text-align: center;
+    color: var(--primary);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid var(--primary-glow);
+    border-left-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

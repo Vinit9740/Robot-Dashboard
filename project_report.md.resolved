@@ -1,0 +1,109 @@
+# Project Report: Robot Dashboard (Nexus Fleet Control)
+
+## 🌟 Project Overview
+The **Robot Dashboard** (internally referred to as the Nexus Fleet Control System) is a high-performance, full-stack web application designed for real-time monitoring and management of robotic fleets. It provides mission control capabilities, live telemetry tracking, and administrative oversight through a premium, modern user interface.
+
+---
+
+## 💻 Tech Stack
+
+### Frontend
+- **Framework**: React 19 (Vite-powered)
+- **Styling**: Vanilla CSS with custom Design Tokens (Glassmorphism & Neon aesthetics)
+- **State Management**: React Context API (`AppContext`)
+- **Authentication**: JWT-based auth with Supabase integration
+- **Real-time**: WebSockets for live telemetry updates
+
+### Backend
+- **Runtime**: Node.js with TypeScript
+- **Framework**: Express.js 5
+- **Database**: PostgreSQL (via `pg` driver)
+- **Security**: Helmet, CORS, JWT (`jsonwebtoken`, `jose`), BcryptJS
+- **Real-time Server**: `ws` (WebSocket) implementation
+- **Cloud Integration**: Supabase (for Auth and data persistence)
+
+---
+
+## 🏗️ System Architecture
+
+### Directory Structure
+```text
+Robot-Dashboard/
+├── frontend/           # React application
+│   ├── src/
+│   │   ├── components/ # Dashboard, Login, and UI tabs
+│   │   ├── services/   # API and WebSocket clients
+│   │   └── App.jsx     # Main entry and routing
+├── backend/            # Express.ts server
+│   ├── src/
+│   │   ├── modules/    # Auth, Robots, and User logic
+│   │   ├── websocket/  # WS server handling
+│   │   └── index.ts    # Server entry point
+└── database/           # SQL initialization scripts
+```
+
+### High-Level Flow
+1. **Frontend** authenticates via **Backend** (using Supabase/JWT).
+2. **Backend** communicates with **PostgreSQL** for persistent data (Robots, Users, Logs).
+3. **WebSockets** provide a persistent bridge for low-latency telemetry (Battery, CPU, Pose) from robots to the dashboard.
+
+---
+
+## 🚀 Key Features
+
+### 1. Fleet Overview (Home Tab)
+- Real-time status indicators for all registered robots.
+- Quick stats (Total robots, online/offline counts).
+- Ability to register new robots into the organization.
+
+### 2. Live Tracker
+- Real-time telemetry visualization.
+- Monitors: Battery levels, CPU usage, Temperature, and spatial coordinates (Pose X, Y, Theta).
+- Visual alerts for diagnostic warnings.
+
+### 3. Admin Clearance (Clearance Tab)
+- **Access Control**: Higher-level administrative actions.
+- Verification workflows for personnel and organizational access.
+- Role-based UI: This tab is exclusively visible to users with the `admin` role.
+
+### 4. Organization & Profile Management
+- Secure user profiles.
+- Organizational isolation: Users only see robots within their assigned `org_id`.
+- Secure logout and session management.
+
+---
+
+## 🔒 Security & Infrastructure
+
+- **Authentication**: Hybrid approach using Supabase for user management and custom JWTs for API authorization.
+- **Database Schema**: 
+  - `users`: Core user data and roles.
+  - `robots`: Unique identification, API keys, and status.
+  - `telemetry`: Historical and real-time sensor data.
+- **API Protection**: Rate limiting and security headers (Helmet) are implemented to prevent common web vulnerabilities.
+
+---
+
+## 🛠️ Development & Setup
+
+### Prerequisites
+- Node.js & npm
+- PostgreSQL
+- Supabase Account (for API keys)
+
+### Quick Start
+1. **Backend**: `cd backend && npm install && npm run dev`
+2. **Frontend**: `cd frontend && npm install && npm run dev`
+3. **Seeding**: Use `npx ts-node seed.ts` in the backend to populate the test environment.
+
+### Test Credentials
+- **Email**: `user@test.com` | `admin@test.com`
+- **Password**: `password123`
+
+---
+
+## 🏁 Current Status
+The project is currently feature-complete for the core dashboard requirements. It successfully demonstrates real-time connectivity, secure multi-tenant access, and a polished user experience.
+
+> [!NOTE]
+> This report is ready for review. Please let me know if you would like to proceed with any specific changes or feature additions.

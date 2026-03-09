@@ -188,7 +188,7 @@
     position: absolute;
     bottom: 40px;
     right: 40px;
-    width: 300px;
+    width: 320px;
     padding: 20px;
     z-index: 10;
     animation: slideUp 0.3s ease-out;
@@ -256,4 +256,68 @@
 .mini-progress div {
     height: 100%;
     border-radius: 2px;
+}
+
+.command-center {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.command-center label {
+    display: block;
+    font-size: 0.7rem;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+.command-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.cmd-btn {
+    flex: 1;
+    padding: 10px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    border: 1px solid transparent;
+}
+
+.cmd-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    filter: grayscale(1);
+}
+
+.cmd-btn.home {
+    background: rgba(138, 43, 226, 0.1);
+    color: var(--accent-primary);
+    border-color: rgba(138, 43, 226, 0.2);
+}
+
+.cmd-btn.home:hover:not(:disabled) {
+    background: rgba(138, 43, 226, 0.2);
+    border-color: var(--accent-primary);
+}
+
+.cmd-btn.stop {
+    background: rgba(255, 68, 68, 0.1);
+    color: #ff4444;
+    border-color: rgba(255, 68, 68, 0.2);
+}
+
+.cmd-btn.stop:hover:not(:disabled) {
+    background: rgba(255, 68, 68, 0.2);
+    border-color: #ff4444;
 }

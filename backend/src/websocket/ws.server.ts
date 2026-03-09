@@ -12,8 +12,9 @@ interface AuthenticatedClient extends WebSocket {
     userId?: string;
 }
 
-// Global registry of connected users to broadcast to
+// Registries for efficient broadcasting
 const userClients = new Set<AuthenticatedClient>();
+const robotClients = new Map<string, AuthenticatedClient>();
 
 const ISSUER_URL = `https://jjeuvppkdibvydncfrjl.supabase.co/auth/v1`;
 const JWKS_URL = `${ISSUER_URL}/.well-known/jwks.json`;
@@ -27,10 +28,9 @@ export const initWebSocket = (server: any) => {
     wss.on("connection", async (ws: AuthenticatedClient, req: IncomingMessage) => {
         try {
             const urlParams = new URLSearchParams(req.url?.split("?")[1]);
-            const token = urlParams.get("token");
+            const token = urlParams.get("token") || urlParams.get("apiKey");
 
             if (!token) {
-                console.warn("⚠️ WS Connection attempt without token");
                 ws.close(1008, "Token required");
                 return;
             }
@@ -40,7 +40,7 @@ export const initWebSocket = (server: any) => {
             let identifiedRobotId: string | null = null;
             let identifiedUserId: string | null = null;
 
-            // ── 1. Attempt Robot Authentication (Token is API Key) ─────────────
+            // 1. Robot Auth (API Key)
             try {
                 const robotsResult = await pool.query("SELECT id, org_id, api_key_hash, name FROM robots");
                 for (const robot of robotsResult.rows) {
@@ -48,7 +48,7 @@ export const initWebSocket = (server: any) => {
                         userType = 'robot';
                         identifiedRobotId = robot.id;
                         identifiedOrgId = robot.org_id;
-                        console.log(`🤖 Robot connected: ${robot.name} (Org: ${identifiedOrgId})`);
+                        console.log(`🤖 Robot authenticated: ${robot.name}`);
                         break;
                     }
                 }
@@ -56,7 +56,7 @@ export const initWebSocket = (server: any) => {
                 console.error("❌ WS DB Auth Error (Robots):", dbErr.message);
             }
 
-            // ── 2. Attempt User Authentication (Token is Supabase JWT) ───────────
+            // 2. User Auth (Supabase JWT)
             if (!userType) {
                 try {
                     let result;
@@ -67,7 +67,6 @@ export const initWebSocket = (server: any) => {
                             algorithms: ["ES256"]
                         });
                     } catch (e) {
-                        // Fallback to local cache for 525 errors
                         result = await jose.jwtVerify(token, localJWKS, {
                             issuer: ISSUER_URL,
                             audience: "authenticated",
@@ -76,22 +75,28 @@ export const initWebSocket = (server: any) => {
                     }
 
                     const payload = result.payload as any;
+                    const role = payload.app_metadata?.role || 'user';
+                    const isVerified = payload.app_metadata?.verified === true;
+
+                    if (role !== 'admin' && !isVerified) {
+                        ws.close(1008, "Account awaiting verification");
+                        return;
+                    }
+
                     userType = 'user';
                     identifiedUserId = payload.sub;
                     identifiedOrgId = payload.app_metadata?.org_id || 1;
-                    console.log(`👤 User connected: ${payload.email} (Org: ${identifiedOrgId})`);
+                    console.log(`👤 User authenticated: ${payload.email}`);
                 } catch (err: any) {
                     console.warn(`⚠️ WS User Auth Failed: ${err.message}`);
                 }
             }
 
             if (!userType) {
-                console.warn("⚠️ WS Authentication failed");
                 ws.close(1008, "Invalid authentication");
                 return;
             }
 
-            // Successfully authenticated
             ws.type = userType;
             ws.orgId = identifiedOrgId!;
 
@@ -100,70 +105,69 @@ export const initWebSocket = (server: any) => {
                 userClients.add(ws);
             } else {
                 ws.robotId = identifiedRobotId!;
-                // Update robot status to ONLINE
+                robotClients.set(ws.robotId, ws);
                 await pool.query("UPDATE robots SET status = 'ONLINE' WHERE id = $1", [ws.robotId]);
-                broadcastToOrg(ws.orgId, { type: 'status_update', robotId: ws.robotId, status: 'ONLINE' });
+                broadcastRobotUpdate(ws.robotId, { type: 'status_update', robotId: ws.robotId, status: 'ONLINE' });
             }
 
-            // ── Handling incoming messages ───────────────────
             ws.on("message", async (message: Buffer) => {
                 try {
                     const data = JSON.parse(message.toString());
 
-                    if (ws.type === 'robot') {
-                        // 1. Save telemetry to Database
-                        await pool.query(
-                            `INSERT INTO telemetry 
-                            (robot_id, org_id, battery, cpu, temperature, pose_x, pose_y, pose_theta)
-                            VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-                            [
-                                ws.robotId,
-                                ws.orgId,
-                                data.battery || 0,
-                                data.cpu || 0,
-                                data.temperature || 0,
-                                data.pose?.x || 0,
-                                data.pose?.y || 0,
-                                data.pose?.theta || 0,
-                            ]
-                        );
+                    // --- Robot Message (Telemetry) ---
+                    if (ws.type === 'robot' && ws.robotId) {
+                        // Persist to DB asynchronously
+                        pool.query(
+                            `INSERT INTO telemetry (robot_id, org_id, battery, cpu, temperature, pose_x, pose_y, pose_theta)
+                             VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+                            [ws.robotId, ws.orgId, data.battery || 0, data.cpu || 0, data.temperature || 0, data.pose?.x || 0, data.pose?.y || 0, data.pose?.theta || 0]
+                        ).catch(e => console.error("❌ Telemetry DB Error:", e.message));
 
-                        // 2. Broadcast live telemetry to all users in this Org
-                        broadcastToOrg(ws.orgId!, {
+                        // Broadcast to authorized users
+                        broadcastRobotUpdate(ws.robotId, {
                             type: 'telemetry',
                             robotId: ws.robotId,
-                            telemetry: {
-                                battery: data.battery,
-                                cpu: data.cpu,
-                                temperature: data.temperature,
-                                pose: data.pose,
-                                lastUpdate: new Date().toISOString()
-                            }
+                            telemetry: { ...data, lastUpdate: new Date().toISOString() }
                         });
+                    }
+
+                    // --- User Message (Command) ---
+                    if (ws.type === 'user' && data.type === 'robot_command') {
+                        const { robotId, command, params } = data;
+
+                        // Access Control Check
+                        const robotRes = await pool.query("SELECT org_id FROM robots WHERE id = $1", [robotId]);
+                        if (robotRes.rows.length === 0) return;
+
+                        const isOrgAdmin = ws.orgId === robotRes.rows[0].org_id; // Check admin org match
+                        const accessRes = await pool.query("SELECT 1 FROM user_robots WHERE user_id = $1 AND robot_id = $2", [ws.userId, robotId]);
+
+                        if (isOrgAdmin || accessRes.rows.length > 0) {
+                            sendCommandToRobot(robotId, {
+                                type: 'command',
+                                command,
+                                params,
+                                senderId: ws.userId,
+                                timestamp: new Date().toISOString()
+                            });
+                        } else {
+                            console.warn(`🔒 Unauthorized Command: User ${ws.userId} -> Robot ${robotId}`);
+                        }
                     }
                 } catch (err) {
                     console.error("❌ WS Message Error:", err);
                 }
             });
 
-            // ── Handling Disconnection ───────────────────
             ws.on("close", async () => {
                 if (ws.type === 'user') {
                     userClients.delete(ws);
-                    console.log(`👤 User disconnected: ${ws.userId}`);
-                } else if (ws.type === 'robot') {
+                } else if (ws.type === 'robot' && ws.robotId) {
+                    robotClients.delete(ws.robotId);
                     console.log(`🤖 Robot disconnected: ${ws.robotId}`);
-                    try {
-                        await pool.query("UPDATE robots SET status = 'OFFLINE' WHERE id = $1", [ws.robotId]);
-                        broadcastToOrg(ws.orgId!, { type: 'status_update', robotId: ws.robotId, status: 'OFFLINE' });
-                    } catch (err) {
-                        console.error("❌ Robot Disconnect Update Failed:", err);
-                    }
+                    await pool.query("UPDATE robots SET status = 'OFFLINE' WHERE id = $1", [ws.robotId]);
+                    broadcastRobotUpdate(ws.robotId, { type: 'status_update', robotId: ws.robotId, status: 'OFFLINE' });
                 }
-            });
-
-            ws.on("error", (error) => {
-                console.error(`❌ WS Error for ${ws.type}:`, error);
             });
 
         } catch (fatalErr) {
@@ -175,10 +179,51 @@ export const initWebSocket = (server: any) => {
     console.log("📡 WebSocket Server Initialized");
 };
 
-function broadcastToOrg(orgId: number, data: any) {
+/**
+ * Intelligent Broadcast: Routes data to authorized users for a specific robot.
+ */
+async function broadcastRobotUpdate(robotId: string, data: any) {
+    try {
+        const message = JSON.stringify(data);
+
+        // 1. Get robot's Org for Admin broadcasting
+        const robotRes = await pool.query("SELECT org_id FROM robots WHERE id = $1", [robotId]);
+        if (robotRes.rows.length === 0) return;
+        const robotOrgId = robotRes.rows[0].org_id;
+
+        // 2. Get explicitly assigned users
+        const assignedRes = await pool.query("SELECT user_id FROM user_robots WHERE robot_id = $1", [robotId]);
+        const assignedUserIds = new Set(assignedRes.rows.map(r => r.user_id));
+
+        userClients.forEach(client => {
+            if (client.readyState !== WebSocket.OPEN) return;
+            const isAdminInOrg = client.orgId === robotOrgId; // Simplified role check
+            const isAssigned = assignedUserIds.has(client.userId!);
+            if (isAdminInOrg || isAssigned) {
+                client.send(message);
+            }
+        });
+    } catch (err) {
+        console.error("❌ Broadcast Failed:", err);
+    }
+}
+
+/**
+ * Sends a command packet to a specific robot socket.
+ */
+function sendCommandToRobot(robotId: string, data: any) {
+    const robotSocket = robotClients.get(robotId);
+    if (robotSocket && robotSocket.readyState === WebSocket.OPEN) {
+        robotSocket.send(JSON.stringify(data));
+        return true;
+    }
+    return false;
+}
+
+export function notifyUserUpdate(userId: string, data: any) {
     const message = JSON.stringify(data);
     userClients.forEach(client => {
-        if (client.orgId === orgId && client.readyState === WebSocket.OPEN) {
+        if (client.userId === userId && client.readyState === WebSocket.OPEN) {
             client.send(message);
         }
     });

@@ -45,12 +45,24 @@ export const verifyToken = async (
 
         const payload = result.payload as any;
         const appMeta = payload.app_metadata || {};
+        const role = appMeta.role || "user";
+        const isVerified = appMeta.verified === true;
+
+        // Admins bypass verification check. Normal users must be verified.
+        if (role !== 'admin' && !isVerified) {
+            console.warn(`🔒 Access Denied: User ${payload.email} is not verified by an administrator.`);
+            return res.status(403).json({
+                message: "Your account is awaiting administrator verification.",
+                error_code: "USER_NOT_VERIFIED"
+            });
+        }
 
         req.user = {
             userId: payload.sub,
             email: payload.email,
-            role: appMeta.role || "user",
+            role: role,
             orgId: appMeta.org_id || 1,
+            verified: isVerified
         };
 
         next();

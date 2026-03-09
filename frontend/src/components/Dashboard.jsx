@@ -1,32 +1,23 @@
-import { useState, useEffect } from 'react';
+import { useContext } from 'react';
 import './Dashboard.css';
 import HomeTab from './tabs/HomeTab';
 import TrackerTab from './tabs/TrackerTab';
 import UserTab from './tabs/UserTab';
-import { jwtDecode } from 'jwt-decode';
+import AdminVerification from './tabs/AdminVerification';
+import { AppContext } from '../App';
 
 export default function Dashboard({ token, onLogout }) {
-    const [activeTab, setActiveTab] = useState('home');
-    const [sidebarOpen, setSidebarOpen] = useState(true);
-    const [user, setUser] = useState(null);
+    const { activeTab, setActiveTab, user } = useContext(AppContext);
 
-    useEffect(() => {
-        if (token) {
-            try {
-                const decoded = jwtDecode(token);
-                setUser(decoded);
-            } catch (err) {
-                console.error('Error decoding token:', err);
-            }
-        }
-    }, [token]);
+    // Check admin status from user object in context
+    const isAdmin = user?.app_metadata?.role === 'admin';
 
     const handleLogout = () => {
         onLogout();
     };
 
     return (
-        <div className={`dashboard-v2 ${sidebarOpen ? 'sidebar-open' : 'sidebar-collapsed'}`}>
+        <div className="dashboard-v2 sidebar-open">
             {/* Sidebar */}
             <aside className="sidebar glass-card">
                 <div className="sidebar-header">
@@ -36,7 +27,7 @@ export default function Dashboard({ token, onLogout }) {
                     </div>
                 </div>
 
-                <nav className="sidebar-nav">
+                <nav className="sidebar-nav" style={{ flex: 1 }}>
                     <button
                         className={`nav-item ${activeTab === 'home' ? 'active' : ''}`}
                         onClick={() => setActiveTab('home')}
@@ -51,6 +42,15 @@ export default function Dashboard({ token, onLogout }) {
                         <span className="nav-icon">📍</span>
                         <span className="nav-label">Live Tracker</span>
                     </button>
+                    {isAdmin && (
+                        <button
+                            className={`nav-item ${activeTab === 'verify' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('verify')}
+                        >
+                            <span className="nav-icon">🛡️</span>
+                            <span className="nav-label">Clearance</span>
+                        </button>
+                    )}
                     <button
                         className={`nav-item ${activeTab === 'user' ? 'active' : ''}`}
                         onClick={() => setActiveTab('user')}
@@ -63,7 +63,7 @@ export default function Dashboard({ token, onLogout }) {
                 <div className="sidebar-footer">
                     {user && (
                         <div className="user-info">
-                            <span className="user-role-badge">{user.app_metadata?.role || 'user'}</span>
+                            <span className="user-role-badge">{user.app_metadata?.role || 'operator'}</span>
                             <span className="user-email">{user.email || 'Admin User'}</span>
                         </div>
                     )}
@@ -77,17 +77,15 @@ export default function Dashboard({ token, onLogout }) {
             {/* Main Content Area */}
             <main className="main-viewport">
                 <header className="viewport-header">
-                    <button className="sidebar-toggle" onClick={() => setSidebarOpen(!sidebarOpen)}>
-                        {sidebarOpen ? '◀' : '▶'}
-                    </button>
                     <div className="viewport-title">
-                        <h2>{activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</h2>
+                        <h2>{activeTab === 'verify' ? 'Personnel Clearance' : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</h2>
                     </div>
                 </header>
 
                 <div className="tab-render-area">
                     {activeTab === 'home' && <HomeTab token={token} user={user} />}
                     {activeTab === 'tracker' && <TrackerTab token={token} user={user} />}
+                    {activeTab === 'verify' && isAdmin && <AdminVerification token={token} />}
                     {activeTab === 'user' && <UserTab token={token} />}
                 </div>
             </main>

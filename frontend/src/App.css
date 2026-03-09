@@ -73,3 +73,76 @@ body {
 .error-container button:hover {
   transform: scale(1.05);
 }
+
+/* Global Notification system */
+.global-notification-v2 {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 320px;
+  padding: 16px 20px;
+  border-radius: 12px;
+  background: rgba(13, 17, 23, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  animation: slideInNoti 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.global-notification-v2.success {
+  border-left: 4px solid #00f2fe;
+}
+
+.global-notification-v2.error {
+  border-left: 4px solid #ff4d4d;
+}
+
+.global-notification-v2.info {
+  border-left: 4px solid #667eea;
+}
+
+.noti-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.noti-icon {
+  font-size: 1.2rem;
+}
+
+.noti-msg {
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.noti-close {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 4px;
+  transition: color 0.2s;
+}
+
+.noti-close:hover {
+  color: #fff;
+}
+
+@keyframes slideInNoti {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}

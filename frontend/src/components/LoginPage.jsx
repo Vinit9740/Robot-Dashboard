@@ -3,39 +3,77 @@ import { supabase } from '../services/supabaseClient';
 import './LoginPage.css';
 
 export default function LoginPage({ onLoginSuccess }) {
-    const [step, setStep] = useState('email'); // 'email' | 'otp'
+    const [mode, setMode] = useState('login'); // 'login' | 'signup'
+    const [step, setStep] = useState('form'); // 'form' | 'otp'
     const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [username, setUsername] = useState('');
     const [code, setCode] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
-    const [resendCooldown, setResendCooldown] = useState(0);
 
-    // ── Step 1: Request OTP via Supabase ──────────────────────────────────
-    const handleSendOtp = async (e) => {
+    // ── Handle Login ──────────────────────────────────────────────────────
+    const handleLogin = async (e) => {
         e.preventDefault();
         setError('');
         setLoading(true);
         try {
-            console.log('📡 Attempting Supabase OTP for:', email);
-            const { error: sbError } = await supabase.auth.signInWithOtp({
+            const { data, error: sbError } = await supabase.auth.signInWithPassword({
                 email,
-                options: { shouldCreateUser: false }, // only allow existing users
+                password,
             });
-            if (sbError) {
-                console.error('❌ Supabase Auth Error:', sbError);
-                throw new Error(sbError.message);
+            if (sbError) throw sbError;
+
+            const accessToken = data?.session?.access_token;
+            if (!accessToken) throw new Error('Auth failed');
+
+            // Check if user is verified by making a quick test call to backend
+            try {
+                const res = await fetch('http://127.0.0.1:5000/health', {
+                    headers: { 'Authorization': `Bearer ${accessToken}` }
+                });
+                const resData = await res.json();
+                if (res.status === 403 && resData.error_code === 'USER_NOT_VERIFIED') {
+                    throw new Error("Account awaiting admin approval.");
+                }
+            } catch (e) {
+                if (e.message.includes("approval")) throw e;
             }
-            setStep('otp');
-            startResendCooldown();
+
+            localStorage.setItem('token', accessToken);
+            localStorage.setItem('userEmail', email);
+            onLoginSuccess(accessToken);
         } catch (err) {
-            console.error('❌ Login error:', err);
-            setError(err.message || 'Failed to send code. Check your email address.');
+            setError(err.message);
         } finally {
             setLoading(false);
         }
     };
 
-    // ── Step 2: Verify OTP via Supabase ───────────────────────────────────
+    // ── Handle Signup ─────────────────────────────────────────────────────
+    const handleSignup = async (e) => {
+        e.preventDefault();
+        setError('');
+        setLoading(true);
+        try {
+            const { data, error: sbError } = await supabase.auth.signUp({
+                email,
+                password,
+                options: {
+                    data: { username: username }
+                }
+            });
+            if (sbError) throw sbError;
+
+            setStep('otp');
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // ── Verify OTP ────────────────────────────────────────────────────────
     const handleVerifyOtp = async (e) => {
         e.preventDefault();
         setError('');
@@ -44,57 +82,18 @@ export default function LoginPage({ onLoginSuccess }) {
             const { data, error: sbError } = await supabase.auth.verifyOtp({
                 email,
                 token: code,
-                type: 'email',
+                type: 'signup',
             });
-            if (sbError) throw new Error(sbError.message);
+            if (sbError) throw sbError;
 
-            const accessToken = data?.session?.access_token;
-            if (!accessToken) throw new Error('No session returned. Please try again.');
-
-            localStorage.setItem('token', accessToken);
-            localStorage.setItem('userEmail', email);
-            onLoginSuccess(accessToken);
+            setStep('form');
+            setMode('login');
+            setError("Email verified! Please wait for an admin to approve your account.");
         } catch (err) {
-            setError(err.message || 'Invalid or expired code.');
+            setError(err.message);
         } finally {
             setLoading(false);
         }
-    };
-
-    // ── Resend code ───────────────────────────────────────────────────────
-    const handleResend = async () => {
-        if (resendCooldown > 0) return;
-        setError('');
-        setCode('');
-        setLoading(true);
-        try {
-            const { error: sbError } = await supabase.auth.signInWithOtp({
-                email,
-                options: { shouldCreateUser: false },
-            });
-            if (sbError) throw new Error(sbError.message);
-            startResendCooldown();
-        } catch (err) {
-            setError(err.message || 'Failed to resend code.');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const startResendCooldown = () => {
-        setResendCooldown(30);
-        const interval = setInterval(() => {
-            setResendCooldown((prev) => {
-                if (prev <= 1) { clearInterval(interval); return 0; }
-                return prev - 1;
-            });
-        }, 1000);
-    };
-
-    const handleBack = () => {
-        setStep('email');
-        setCode('');
-        setError('');
     };
 
     return (
@@ -103,76 +102,91 @@ export default function LoginPage({ onLoginSuccess }) {
                 <div className="login-header-v2">
                     <span className="login-logo-v2">🤖</span>
                     <h1 className="glow-text">Robot Control</h1>
-                    <p>Secure Nexus Access</p>
+                    <p>{mode === 'login' ? 'Secure Nexus Access' : 'Register New Operative'}</p>
                 </div>
 
-                {/* ── Step 1: Email ──────────────────────────────────── */}
-                {step === 'email' && (
-                    <form onSubmit={handleSendOtp} className="modern-login-form otp-animate-in">
+                {step === 'form' ? (
+                    <form onSubmit={mode === 'login' ? handleLogin : handleSignup} className="modern-login-form">
+                        {mode === 'signup' && (
+                            <div className="input-group-v2">
+                                <label>Username</label>
+                                <input
+                                    type="text"
+                                    placeholder="ghost_operator"
+                                    value={username}
+                                    onChange={(e) => setUsername(e.target.value)}
+                                    required
+                                />
+                            </div>
+                        )}
                         <div className="input-group-v2">
-                            <label>Identity (Email)</label>
+                            <label>Email</label>
                             <input
                                 type="email"
                                 placeholder="operator@nexus.io"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
-                                autoFocus
                             />
                         </div>
-                        <button type="submit" disabled={loading} className="login-submit-btn">
-                            {loading ? 'Sending Code...' : 'Send One-Time Code →'}
-                        </button>
-                    </form>
-                )}
+                        <div className="input-group-v2">
+                            <label>Password</label>
+                            <input
+                                type="password"
+                                placeholder="••••••••"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                required
+                            />
+                        </div>
 
-                {/* ── Step 2: OTP Code ───────────────────────────────── */}
-                {step === 'otp' && (
-                    <form onSubmit={handleVerifyOtp} className="modern-login-form otp-animate-in">
+                        <button type="submit" disabled={loading} className="login-submit-btn">
+                            {loading ? 'Processing...' : (mode === 'login' ? 'Establish Connection →' : 'Initialize Signup →')}
+                        </button>
+
+                        <div className="otp-actions">
+                            <button
+                                type="button"
+                                className="otp-back-btn"
+                                onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setError(''); }}
+                            >
+                                {mode === 'login' ? 'Need an account? Signup' : 'Already registered? Login'}
+                            </button>
+                        </div>
+                    </form>
+                ) : (
+                    <form onSubmit={handleVerifyOtp} className="modern-login-form">
                         <div className="otp-sent-notice">
                             <span className="otp-sent-icon">📧</span>
-                            <p>Code sent to<br /><strong>{email}</strong></p>
+                            <p>Verification code sent to<br /><strong>{email}</strong></p>
                         </div>
                         <div className="input-group-v2">
-                            <label>One-Time Code</label>
+                            <label>Verification Code</label>
                             <input
                                 className="otp-code-input"
                                 type="text"
-                                inputMode="numeric"
-                                pattern="[0-9]*"
-                                maxLength={10}
-                                placeholder="_ _ _ _ _ _ _ _"
                                 value={code}
-                                onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                                onChange={(e) => setCode(e.target.value)}
                                 required
-                                autoFocus
                             />
-                            <p className="input-hint">Enter the 6 or 8 digit code from your email.</p>
                         </div>
-                        <button
-                            type="submit"
-                            disabled={loading || code.length < 6}
-                            className="login-submit-btn"
-                        >
-                            {loading ? 'Verifying...' : 'Establish Connection'}
+                        <button type="submit" disabled={loading} className="login-submit-btn">
+                            {loading ? 'Verifying...' : 'Complete Registration'}
                         </button>
+
                         <div className="otp-actions">
-                            <button type="button" className="otp-back-btn" onClick={handleBack}>
-                                ← Change Email
-                            </button>
                             <button
                                 type="button"
-                                className={`otp-resend-btn ${resendCooldown > 0 ? 'disabled' : ''}`}
-                                onClick={handleResend}
-                                disabled={resendCooldown > 0 || loading}
+                                className="otp-back-btn"
+                                onClick={() => setStep('form')}
                             >
-                                {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend Code'}
+                                ← Back to Signup
                             </button>
                         </div>
                     </form>
                 )}
 
-                {error && <p className="login-error-v2">{error}</p>}
+                {error && <p className={`login-error-v2 ${error.includes('verified') ? 'success-msg' : ''}`}>{error}</p>}
 
                 <div className="login-footer-v2">
                     <p>Authorized personnel only. Data-link encrypted.</p>

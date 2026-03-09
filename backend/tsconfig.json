@@ -10,6 +10,9 @@
   "exclude": [
     "node_modules",
     "seed.ts",
-    "setup-user.sql"
+    "setup-user.sql",
+    "simulate-robot.ts",
+    "test-db.ts",
+    "pc-robot.ts"
   ]
 }

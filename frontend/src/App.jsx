@@ -1,4 +1,4 @@
-import { useState, useEffect, createContext } from 'react'
+import { useState, useEffect, createContext, useRef } from 'react'
 import './App.css'
 import LoginPage from './components/LoginPage'
 import Dashboard from './components/Dashboard'
@@ -9,90 +9,104 @@ export const AppContext = createContext()
 
 function App() {
   const [token, setToken] = useState(null)
+  const [user, setUser] = useState(null)
   const [backendConnected, setBackendConnected] = useState(false)
   const [checkingBackend, setCheckingBackend] = useState(true)
   const [robots, setRobots] = useState([])
+  const [activeTab, setActiveTab] = useState('home')
+  const [selectedRobotId, setSelectedRobotId] = useState(null)
+  const [notification, setNotification] = useState(null) // { message, type }
+  const wsRef = useRef(null)
+
+  const showNotification = (message, type = 'info') => {
+    setNotification({ message, type });
+    setTimeout(() => setNotification(null), 5000);
+  };
+
+  const decodeAndSetUser = (accessToken) => {
+    try {
+      if (accessToken) {
+        const payload = JSON.parse(atob(accessToken.split('.')[1]));
+        setUser(payload);
+      } else {
+        setUser(null);
+      }
+    } catch (err) {
+      console.error('Error decoding token:', err);
+      setUser(null);
+    }
+  };
 
   // ── Restore session from Supabase on mount ─────────────────────────────
   useEffect(() => {
     const init = async () => {
-      // Check backend connectivity first
       try {
-        // The user's provided diff for this section was syntactically incorrect and changed the logic.
-        // Assuming the intent was to change the healthCheck URL if it were inlined,
-        // but since healthCheck is imported, it should be changed in api.js.
-        // For now, I'm keeping the original call to healthCheck() as per the original file,
-        // as the provided diff was not a valid replacement.
         const connected = await healthCheck()
         setBackendConnected(connected)
-      } catch (error) { // Fixed catch block to log the error
+      } catch (error) {
         console.error('Error checking backend connectivity:', error);
         setBackendConnected(false)
       }
 
-      // Restore Supabase session if one exists
       const { data: { session } } = await supabase.auth.getSession()
       if (session?.access_token) {
         setToken(session.access_token)
-        localStorage.setItem('token', session.access_token)
-        localStorage.setItem('userEmail', session.user?.email || '')
+        decodeAndSetUser(session.access_token)
       }
-
       setCheckingBackend(false)
     }
-
     init()
 
-    // Listen for auth state changes (token refresh, sign-out)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.access_token) {
         setToken(session.access_token)
-        localStorage.setItem('token', session.access_token)
-        localStorage.setItem('userEmail', session.user?.email || '')
+        decodeAndSetUser(session.access_token)
       } else {
         setToken(null)
+        setUser(null)
         setRobots([])
-        localStorage.removeItem('token')
-        localStorage.removeItem('userEmail')
       }
     })
-
     return () => subscription.unsubscribe()
   }, [])
 
-  // ── Fetch robots whenever we have a valid token ────────────────────────
+  // ── WebSocket & Data Management ────────────────────────────────────────
   useEffect(() => {
     if (token) {
       fetchRobots();
-
-      // Establish Real-time WebSocket connection
       const ws = new WebSocket(`ws://127.0.0.1:5000?token=${token}`);
+      wsRef.current = ws;
 
       ws.onmessage = (event) => {
         const data = JSON.parse(event.data);
-
         if (data.type === 'telemetry') {
-          setRobots(prevRobots => prevRobots.map(r =>
-            r.id === data.robotId
-              ? { ...r, telemetry: data.telemetry }
-              : r
-          ));
+          setRobots(p => p.map(r => r.id === data.robotId ? { ...r, telemetry: data.telemetry } : r));
         } else if (data.type === 'status_update') {
-          setRobots(prevRobots => prevRobots.map(r =>
-            r.id === data.robotId
-              ? { ...r, status: data.status }
-              : r
-          ));
+          setRobots(p => p.map(r => r.id === data.robotId ? { ...r, status: data.status } : r));
+        } else if (data.type === 'assignments_updated') {
+          fetchRobots();
         }
       };
 
       ws.onopen = () => console.log('🟢 Tracker WebSocket Connected');
-      ws.onclose = () => console.log('🔴 Tracker WebSocket Disconnected');
+      ws.onclose = () => {
+        console.log('🔴 Tracker WebSocket Disconnected');
+        wsRef.current = null;
+      };
       ws.onerror = (err) => console.error('WS Error:', err);
-
       return () => ws.close();
     }
   }, [token])
+
+  const sendCommand = (robotId, command, params = {}) => {
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ type: 'robot_command', robotId, command, params }));
+      showNotification(`Command Sent: ${command}`, 'success');
+      return true;
+    }
+    showNotification('System Offline: Link establishment failed.', 'error');
+    return false;
+  };
 
   const fetchRobots = async () => {
     try {
@@ -105,37 +119,53 @@ function App() {
 
   const handleLoginSuccess = (accessToken) => {
     setToken(accessToken)
+    decodeAndSetUser(accessToken)
   }
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
     setToken(null)
+    setUser(null)
     setRobots([])
     localStorage.removeItem('token')
     localStorage.removeItem('userEmail')
   }
 
-  if (checkingBackend) {
-    return <div className="loading">Checking backend connection...</div>
-  }
+  const navigateToTracker = (robotId) => {
+    setSelectedRobotId(robotId);
+    setActiveTab('tracker');
+  };
+
+  if (checkingBackend) return <div className="loading">Establishing secure connection...</div>
 
   if (!backendConnected) {
     return (
       <div className="error-container">
-        <h1>⚠️ Backend Not Connected</h1>
-        <p>Please make sure the backend server is running on http://localhost:5000</p>
-        <p>Run: <code>npm run dev</code> in the backend folder</p>
-        <button onClick={() => window.location.reload()}>Retry</button>
+        <h1>⚠️ Subsystem Disconnected</h1>
+        <p>Operational node at port 5000 is unreachable.</p>
+        <button onClick={() => window.location.reload()}>Re-initialize</button>
       </div>
     )
   }
 
   return (
-    <AppContext.Provider value={{ robots, setRobots, token }}>
-      {token ? (
-        <Dashboard token={token} onLogout={handleLogout} />
-      ) : (
-        <LoginPage onLoginSuccess={handleLoginSuccess} />
+    <AppContext.Provider value={{
+      robots, setRobots, token, user, activeTab, setActiveTab,
+      selectedRobotId, setSelectedRobotId, sendCommand, showNotification,
+      navigateToTracker
+    }}>
+      {token ? <Dashboard token={token} onLogout={handleLogout} /> : <LoginPage onLoginSuccess={handleLoginSuccess} />}
+
+      {notification && (
+        <div className={`global-notification-v2 ${notification.type}`}>
+          <div className="noti-content">
+            <span className="noti-icon">
+              {notification.type === 'success' ? '✅' : notification.type === 'error' ? '❌' : 'ℹ️'}
+            </span>
+            <span className="noti-msg">{notification.message}</span>
+          </div>
+          <button className="noti-close" onClick={() => setNotification(null)}>✕</button>
+        </div>
       )}
     </AppContext.Provider>
   )

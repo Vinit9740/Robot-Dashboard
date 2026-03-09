@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Phone Robot Simulator</title>
+</head>
+
+<body>
+
+    <h2>Robot Simulator</h2>
+
+    <button onclick="connectRobot()">Connect Robot</button>
+    <button onclick="sendTelemetry()">Send Telemetry</button>
+
+    <p id="status">Disconnected</p>
+
+    <script>
+
+        let ws;
+
+        function connectRobot() {
+
+            const apiKey = "1e682153-135e-477b-83bf-5717420512a3";
+
+            ws = new WebSocket("ws:// 10.132.4.111:5000?apiKey=" + apiKey);
+
+            ws.onopen = () => {
+                document.getElementById("status").innerText = "Robot Connected";
+            };
+
+            ws.onclose = () => {
+                document.getElementById("status").innerText = "Disconnected";
+            };
+
+        }
+
+        function sendTelemetry() {
+
+            const data = {
+                battery: Math.floor(Math.random() * 100),
+                status: "ONLINE"
+            };
+
+            ws.send(JSON.stringify(data));
+
+        }
+
+    </script>
+
+</body>
+
+</html>
