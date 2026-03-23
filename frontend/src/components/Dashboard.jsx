@@ -1,4 +1,5 @@
 import { useContext } from 'react';
+import { useTranslation } from 'react-i18next';
 import './Dashboard.css';
 import HomeTab from './tabs/HomeTab';
 import TrackerTab from './tabs/TrackerTab';
@@ -7,6 +8,7 @@ import AdminVerification from './tabs/AdminVerification';
 import { AppContext } from '../App';
 
 export default function Dashboard({ token, onLogout }) {
+    const { t, i18n } = useTranslation();
     const { activeTab, setActiveTab, user } = useContext(AppContext);
 
     // Check admin status from user object in context
@@ -33,14 +35,14 @@ export default function Dashboard({ token, onLogout }) {
                         onClick={() => setActiveTab('home')}
                     >
                         <span className="nav-icon">🏠</span>
-                        <span className="nav-label">Fleet Overview</span>
+                        <span className="nav-label">{t('home')}</span>
                     </button>
                     <button
                         className={`nav-item ${activeTab === 'tracker' ? 'active' : ''}`}
                         onClick={() => setActiveTab('tracker')}
                     >
                         <span className="nav-icon">📍</span>
-                        <span className="nav-label">Live Tracker</span>
+                        <span className="nav-label">{t('tracker')}</span>
                     </button>
                     {isAdmin && (
                         <button
@@ -56,7 +58,7 @@ export default function Dashboard({ token, onLogout }) {
                         onClick={() => setActiveTab('user')}
                     >
                         <span className="nav-icon">👤</span>
-                        <span className="nav-label">My Profile</span>
+                        <span className="nav-label">{t('profile')}</span>
                     </button>
                 </nav>
 
@@ -69,7 +71,7 @@ export default function Dashboard({ token, onLogout }) {
                     )}
                     <button className="logout-action-btn" onClick={handleLogout}>
                         <span className="logout-icon">🚪</span>
-                        <span className="logout-text">Sign Out</span>
+                        <span className="logout-text">Logout</span>
                     </button>
                 </div>
             </aside>
@@ -78,7 +80,18 @@ export default function Dashboard({ token, onLogout }) {
             <main className="main-viewport">
                 <header className="viewport-header">
                     <div className="viewport-title">
-                        <h2>{activeTab === 'verify' ? 'Personnel Clearance' : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</h2>
+                        <h2>{activeTab === 'verify' ? t('personnel_clearance') : t(activeTab)}</h2>
+                    </div>
+                    <div className="language-switcher">
+                        <select
+                            value={i18n.language}
+                            onChange={(e) => i18n.changeLanguage(e.target.value)}
+                            className="lang-select"
+                        >
+                            <option value="en">English</option>
+                            <option value="hi">हिंदी (Hindi)</option>
+                            <option value="kn">ಕನ್ನಡ (Kannada)</option>
+                        </select>
                     </div>
                 </header>
 

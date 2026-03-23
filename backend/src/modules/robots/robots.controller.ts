@@ -3,6 +3,8 @@ import { pool } from "../../config/db";
 import { AuthRequest } from "../../middleware/auth.middleware";
 import bcrypt from "bcryptjs";
 import { v4 as uuidv4 } from "uuid";
+import http from "http";
+import { URL } from "url";
 import mockDB from "../../data/mockDB";
 
 export const createRobot = async (req: AuthRequest, res: Response) => {
@@ -64,5 +66,32 @@ export const getRobots = async (req: AuthRequest, res: Response) => {
     } catch (err: any) {
         console.error('❌ Failed to fetch robots:', err.message);
         res.status(500).json({ message: "Unable to retrieve robot telemetry from secure node." });
+    }
+};
+
+export const proxyVideoStream = async (req: AuthRequest, res: Response) => {
+    const { id } = req.params;
+    
+    try {
+        const result = await pool.query("SELECT ros_bridge_url FROM robots WHERE id = $1", [id]);
+        if (result.rows.length === 0 || !result.rows[0].ros_bridge_url) {
+            return res.status(404).send("Robot video stream source not configured");
+        }
+
+        const bridgeUrl = result.rows[0].ros_bridge_url;
+        const hostname = new URL(bridgeUrl).hostname;
+        // Defaulting to web_video_server port 8080
+        const videoUrl = `http://${hostname}:8080/stream?topic=/image_raw&type=mjpeg`;
+
+        http.get(videoUrl, (proxyRes) => {
+            res.writeHead(proxyRes.statusCode || 200, proxyRes.headers);
+            proxyRes.pipe(res);
+        }).on('error', (err) => {
+            console.error(`❌ Video stream proxy error for robot ${id}:`, err.message);
+            res.status(502).send("Robot video stream unreachable");
+        });
+    } catch (err: any) {
+        console.error(`❌ DB error in video proxy:`, err.message);
+        res.status(500).send("Internal server error");
     }
 };

@@ -4,12 +4,16 @@ import bcrypt from "bcryptjs";
 import { IncomingMessage } from "http";
 import * as jose from "jose";
 import { LOCAL_JWKS } from "../config/jwks.cache";
+import { ROSService } from "../modules/ros/ros.service";
 
 interface AuthenticatedClient extends WebSocket {
     type?: 'robot' | 'user';
     robotId?: string;
     orgId?: number;
     userId?: string;
+    role?: string; // Store user role from JWT
+    isAlive: boolean;
+    accessCache?: Set<string>; // Cache for robot access checks
 }
 
 // Registries for efficient broadcasting
@@ -24,6 +28,9 @@ const localJWKS = jose.createLocalJWKSet(LOCAL_JWKS as any);
 
 export const initWebSocket = (server: any) => {
     const wss = new WebSocketServer({ server });
+    
+    // Initialize ROS Service with broadcast capability
+    ROSService.init((robotId, data) => broadcastRobotUpdate(robotId, data));
 
     wss.on("connection", async (ws: AuthenticatedClient, req: IncomingMessage) => {
         try {
@@ -86,7 +93,8 @@ export const initWebSocket = (server: any) => {
                     userType = 'user';
                     identifiedUserId = payload.sub;
                     identifiedOrgId = payload.app_metadata?.org_id || 1;
-                    console.log(`👤 User authenticated: ${payload.email}`);
+                    ws.role = role; // Store role for permission checks
+                    console.log(`👤 User authenticated: ${payload.email} (Role: ${role})`);
                 } catch (err: any) {
                     console.warn(`⚠️ WS User Auth Failed: ${err.message}`);
                 }
@@ -106,6 +114,13 @@ export const initWebSocket = (server: any) => {
             } else {
                 ws.robotId = identifiedRobotId!;
                 robotClients.set(ws.robotId, ws);
+                
+                // If robot has a ROS bridge configured, connect to it
+                const robotConfig = await pool.query("SELECT ros_bridge_url FROM robots WHERE id = $1", [ws.robotId]);
+                if (robotConfig.rows[0]?.ros_bridge_url) {
+                    ROSService.getInstance().connectRobot(ws.robotId, robotConfig.rows[0].ros_bridge_url);
+                }
+
                 await pool.query("UPDATE robots SET status = 'ONLINE' WHERE id = $1", [ws.robotId]);
                 broadcastRobotUpdate(ws.robotId, { type: 'status_update', robotId: ws.robotId, status: 'ONLINE' });
             }
@@ -113,6 +128,7 @@ export const initWebSocket = (server: any) => {
             ws.on("message", async (message: Buffer) => {
                 try {
                     const data = JSON.parse(message.toString());
+                    console.log(`📡 [WS In] Sender=${ws.type} Type=${data.type} Cmd=${data.command || 'N/A'}`);
 
                     // --- Robot Message (Telemetry) ---
                     if (ws.type === 'robot' && ws.robotId) {
@@ -134,24 +150,30 @@ export const initWebSocket = (server: any) => {
                     // --- User Message (Command) ---
                     if (ws.type === 'user' && data.type === 'robot_command') {
                         const { robotId, command, params } = data;
+                        if (!robotId || !command) return;
 
-                        // Access Control Check
-                        const robotRes = await pool.query("SELECT org_id FROM robots WHERE id = $1", [robotId]);
-                        if (robotRes.rows.length === 0) return;
+                        // 2. Permission Check
+                        const isOrgAdmin = ws.role === 'admin';
+                        const hasCachedAccess = ws.accessCache?.has(robotId);
 
-                        const isOrgAdmin = ws.orgId === robotRes.rows[0].org_id; // Check admin org match
-                        const accessRes = await pool.query("SELECT 1 FROM user_robots WHERE user_id = $1 AND robot_id = $2", [ws.userId, robotId]);
-
-                        if (isOrgAdmin || accessRes.rows.length > 0) {
-                            sendCommandToRobot(robotId, {
-                                type: 'command',
-                                command,
-                                params,
-                                senderId: ws.userId,
-                                timestamp: new Date().toISOString()
-                            });
+                        if (isOrgAdmin || hasCachedAccess) {
+                            console.log(`✅ [WS Auth] Access Granted: User=${ws.userId} -> Robot=${robotId} (Role: ${ws.role}${hasCachedAccess ? ', Cached' : ''})`);
+                            processCommand(ws, robotId, command, params);
                         } else {
-                            console.warn(`🔒 Unauthorized Command: User ${ws.userId} -> Robot ${robotId}`);
+                            // Verify permission and cache it
+                            const accessRes = await pool.query(
+                                "SELECT 1 FROM user_robots WHERE user_id = $1 AND robot_id = $2",
+                                [ws.userId, robotId]
+                            );
+
+                            if (accessRes.rows.length > 0) {
+                                console.log(`✅ [WS Auth] Access Granted: User=${ws.userId} -> Robot=${robotId} (DB)`);
+                                if (!ws.accessCache) ws.accessCache = new Set();
+                                ws.accessCache.add(robotId);
+                                processCommand(ws, robotId, command, params);
+                            } else {
+                                console.warn(`🔒 [WS Auth] DENIED: User=${ws.userId} -> Robot=${robotId}`);
+                            }
                         }
                     }
                 } catch (err) {
@@ -197,7 +219,7 @@ async function broadcastRobotUpdate(robotId: string, data: any) {
 
         userClients.forEach(client => {
             if (client.readyState !== WebSocket.OPEN) return;
-            const isAdminInOrg = client.orgId === robotOrgId; // Simplified role check
+            const isAdminInOrg = client.role === 'admin' && client.orgId === robotOrgId;
             const isAssigned = assignedUserIds.has(client.userId!);
             if (isAdminInOrg || isAssigned) {
                 client.send(message);
@@ -218,6 +240,38 @@ function sendCommandToRobot(robotId: string, data: any) {
         return true;
     }
     return false;
+}
+
+function processCommand(ws: AuthenticatedClient, robotId: string, command: string, params: any) {
+    console.log(`✉️ [Backend] Processing Command: "${command}" for Robot: ${robotId}`);
+    
+    // ROS specific commands
+    if (command === 'teleop') {
+        ROSService.getInstance().sendTeleop(robotId, params.linear || 0, params.angular || 0);
+    } else if (command === 'nav_goal') {
+        ROSService.getInstance().sendNavGoal(robotId, params.pose);
+    } else if (command === 'emergency_stop') {
+        ROSService.getInstance().emergencyStop(robotId);
+    }
+
+    // Special handling for start_mission to match robot simulation expectation
+    if (command === 'start_mission') {
+        sendCommandToRobot(robotId, {
+            type: 'start_mission',
+            route: params?.route || [],
+            senderId: ws.userId,
+            timestamp: new Date().toISOString()
+        });
+    } else {
+        // Generic routing for other commands (teleop, stop, etc)
+        sendCommandToRobot(robotId, {
+            type: 'command',
+            command,
+            params,
+            senderId: ws.userId,
+            timestamp: new Date().toISOString()
+        });
+    }
 }
 
 export function notifyUserUpdate(userId: string, data: any) {

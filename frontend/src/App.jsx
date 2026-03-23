@@ -1,4 +1,5 @@
 import { useState, useEffect, createContext, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import './App.css'
 import LoginPage from './components/LoginPage'
 import Dashboard from './components/Dashboard'
@@ -8,6 +9,7 @@ import { supabase } from './services/supabaseClient'
 export const AppContext = createContext()
 
 function App() {
+  const { t } = useTranslation();
   const [token, setToken] = useState(null)
   const [user, setUser] = useState(null)
   const [backendConnected, setBackendConnected] = useState(false)
@@ -80,7 +82,9 @@ function App() {
       ws.onmessage = (event) => {
         const data = JSON.parse(event.data);
         if (data.type === 'telemetry') {
-          setRobots(p => p.map(r => r.id === data.robotId ? { ...r, telemetry: data.telemetry } : r));
+          setRobots(p => p.map(r => r.id === data.robotId ? { ...r, telemetry: { ...(r.telemetry || {}), ...data.telemetry } } : r));
+        } else if (data.type === 'lidar_scan') {
+          setRobots(p => p.map(r => r.id === data.robotId ? { ...r, lidarScan: data.scan } : r));
         } else if (data.type === 'status_update') {
           setRobots(p => p.map(r => r.id === data.robotId ? { ...r, status: data.status } : r));
         } else if (data.type === 'assignments_updated') {
@@ -136,7 +140,7 @@ function App() {
     setActiveTab('tracker');
   };
 
-  if (checkingBackend) return <div className="loading">Establishing secure connection...</div>
+  if (checkingBackend) return <div className="loading">{t('establish_connection')}</div>
 
   if (!backendConnected) {
     return (

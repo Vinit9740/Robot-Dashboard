@@ -7,12 +7,13 @@
     "strict": true,
     "esModuleInterop": true
   },
+  "include": [
+    "src/**/*"
+  ],
   "exclude": [
     "node_modules",
-    "seed.ts",
-    "setup-user.sql",
-    "simulate-robot.ts",
-    "test-db.ts",
-    "pc-robot.ts"
+    "src/simulate-robot.ts",
+    "src/fix-admin-password.ts",
+    "src/migrate-access.ts"
   ]
 }

@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus Fleet Control - System Architecture Report</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --surface: #1e293b;
+            --primary: #7d52f4;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: #334155;
+            --accent: #10b981;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            line-height: 1.6;
+            margin: 0;
+            padding: 40px;
+            max-width: 1000px;
+            margin: auto;
+        }
+
+        h1, h2, h3 {
+            color: var(--primary);
+            font-weight: 700;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 20px;
+            text-align: center;
+        }
+
+        h2 {
+            font-size: 1.8rem;
+            margin-top: 3rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 10px;
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: var(--text-main);
+            margin-top: 2rem;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 1.2rem;
+            margin-bottom: 3rem;
+        }
+
+        .card {
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        code {
+            background-color: #000;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', Courier, monospace;
+            color: #e2e8f0;
+            font-size: 0.9em;
+        }
+
+        pre {
+            background-color: #000;
+            padding: 16px;
+            border-radius: 8px;
+            overflow-x: auto;
+            border: 1px solid var(--border);
+        }
+
+        pre code {
+            background-color: transparent;
+            padding: 0;
+            color: #a5b4fc;
+        }
+
+        ul {
+            padding-left: 20px;
+        }
+
+        li {
+            margin-bottom: 10px;
+        }
+
+        .sensor-tag {
+            display: inline-block;
+            background-color: var(--primary);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .diagram {
+            background-color: var(--bg);
+            border: 2px dashed var(--border);
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            font-family: monospace;
+            white-space: pre-wrap;
+            color: var(--accent);
+            line-height: 1.5;
+            margin: 20px 0;
+            overflow-x: auto;
+        }
+
+        .highlight {
+            color: var(--accent);
+            font-weight: bold;
+        }
+
+        a.print-btn {
+            display: block;
+            width: fit-content;
+            margin: 0 auto 40px auto;
+            background-color: var(--primary);
+            color: white;
+            text-decoration: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        a.print-btn:hover {
+            opacity: 0.9;
+        }
+
+        @media print {
+            body { 
+                background-color: white; 
+                color: black; 
+                padding: 0;
+            }
+            .card { 
+                background-color: white; 
+                border: 1px solid #ccc; 
+                box-shadow: none; 
+                page-break-inside: avoid;
+            }
+            h1, h2 { color: black; }
+            h3 { color: #333; }
+            code, pre { background-color: #f1f5f9; color: #333; border: 1px solid #ddd; }
+            .diagram { background-color: white; border: 1px solid #333; color: black; }
+            .print-btn { display: none; }
+            :root {
+                --primary: #5b21b6;
+                --text-muted: #64748b;
+                --border: #e2e8f0;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <a class="print-btn" onclick="window.print()">🖨️ Print / Save as PDF</a>
+
+    <h1>Nexus Fleet Control</h1>
+    <div class="subtitle">System Architecture & Capabilities Report (v1.0.0)</div>
+
+    <h2>1. Executive Summary</h2>
+    <div class="card">
+        <p>The <strong>Nexus Fleet Control</strong> system is a cloud-based robotics management platform designed to monitor, command, and coordinate a fleet of autonomous ground vehicles (AGVs) or mobile robots. It bridges the gap between hardware-level robotics systems (ROS) and a user-friendly, real-time web interface.</p>
+        <p>This report details the underlying technology stack, the bidirectional data flow architecture, the comprehensive suite of integrated sensors, and the provisioning process for connecting physical hardware to the platform.</p>
+    </div>
+
+    <h2>2. Technology Stack</h2>
+    <div class="card">
+        <h3>Frontend (Client Interface)</h3>
+        <ul>
+            <li><strong>Framework:</strong> React.js (built with Vite for highly optimized HMR and bundling).</li>
+            <li><strong>Styling & UI:</strong> Custom CSS3 implementing a modern "Glassmorphism" aesthetic with a Dark Mode primary theme.</li>
+            <li><strong>State Management:</strong> React Context API (<code>AppContext</code>) for global fleet state and websocket references.</li>
+            <li><strong>Mapping Engine:</strong> HTML5 Canvas and SVG overlays for dynamic, smooth rendering of floor plans, waypoints, and live robot poses.</li>
+            <li><strong>Internationalization:</strong> <code>react-i18next</code> for multi-language support.</li>
+        </ul>
+
+        <h3>Backend (Cloud Server)</h3>
+        <ul>
+            <li><strong>Runtime:</strong> Node.js with strict TypeScript compilation.</li>
+            <li><strong>Web Server:</strong> Express.js handling REST API endpoints, static assets, and middleware.</li>
+            <li><strong>Real-Time Communication:</strong> <code>ws</code> (WebSockets) running a custom pub/sub broker on Port 5000.</li>
+            <li><strong>Database:</strong> PostgreSQL (hosted via Supabase), managed using the native <code>pg</code> connection pool.</li>
+            <li><strong>Security:</strong> JWT validation (JSON Web Key Sets), <code>bcryptjs</code> for API Key hashing, and <code>helmet</code> for HTTP header security.</li>
+        </ul>
+
+        <h3>Robotics Middleware</h3>
+        <ul>
+            <li><strong>Framework:</strong> Robot Operating System (ROS 1 or ROS 2).</li>
+            <li><strong>Cloud Integration:</strong> <code>rosbridge_suite</code> which provides a standard JSON API to the ROS network over WebSockets.</li>
+        </ul>
+    </div>
+
+    <h2>3. Real-Time Data Flow Architecture</h2>
+    <div class="card">
+        <p>The system operates on an event-driven, bidirectional WebSocket architecture to ensure sub-100ms latency between physical robot movement and UI updates.</p>
+        
+        <div class="diagram">
+[ PHYSICAL ROBOT ]                                 [ CLOUD BACKEND ]                                 [ WEB DASHBOARD ]
+(ROS Navigation)                                    (Node.js / WS)                                    (React)
+       |                                                  |                                                  |
+       |--- 1. ROS publishes Odometry (/odom) ----------->|                                                  |
+       |                                                  |--- 2. Backend parses & packages as JSON ---->    |
+       |                                                  |                                                  |--- 3. React updates map Canvas
+       |                                                  |                                                  |
+       |<-- 6. ROS translates to motor voltage (/cmd) --- |                                                  |
+       |                                                  |<-- 5. Backend validates & formats to Twist --    |
+       |                                                  |                                                  |--- 4. User clicks joystick (Teleop)
+        </div>
+
+        <h3>The Uplink (Telemetry Pipeline)</h3>
+        <p>Robots are configured to expose a WebSocket port via <code>rosbridge_server</code>. The backend Node.js server acts as a <em>client</em>, dialing into the robot and subscribing to critical topics (like <code>/odom</code> and <code>/scan</code>). When the robot moves, it publishes hardware data. The backend intercepts this, normalizes the payload, attaches the <code>robotId</code>, and broadcasts a centralized JSON packet to all currently logged-in React clients.</p>
+
+        <h3>The Downlink (Command Pipeline)</h3>
+        <p>When a human operator interacts with the dashboard (e.g., clicks the "Emergency Stop" button or draws a route), the React application sends a JSON command to the Node.js backend. The backend verifies the user's IAM permissions against the database. If authorized, the backend translates the web command into a standardized ROS message (e.g., a <code>geometry_msgs/Twist</code> for manual driving or <code>geometry_msgs/PoseStamped</code> for autonomous routing) and injects it directly into the robot's hardware bus.</p>
+    </div>
+
+    <h2>4. Integrated Sensors & Implementations</h2>
+    <div class="card">
+        <p>The dashboard is pre-configured to ingest, process, and visualize data from several standard robotics sensors.</p>
+
+        <h3>1. 2D LIDAR (Light Detection and Ranging)</h3>
+        <span class="sensor-tag">ROS Topic: /scan</span> <span class="sensor-tag">Type: sensor_msgs/LaserScan</span>
+        <p><strong>Hardware:</strong> Typically a spinning laser mounted on top of the robot (e.g., RPLIDAR, Sick, Hokuyo) that measures distance to obstacles in a 360-degree plane.</p>
+        <p><strong>Dashboard Implementation:</strong> The backend receives an array of distances (ranges) and angles. This is rushed to the frontend's <code>LidarViewer.jsx</code> component, which utilizes a highly optimized HTML5 Canvas to mathematicaly map polar coordinates to Cartesian coordinates, rendering a real-time red dot scatter plot over a radar grid. This allows operators to "see" what the robot sees, identifying walls, moving humans, or debris.</p>
+
+        <h3>2. Wheel Encoders & IMU (Odometry)</h3>
+        <span class="sensor-tag">ROS Topic: /odom</span> <span class="sensor-tag">Type: nav_msgs/Odometry</span>
+        <p><strong>Hardware:</strong> Magnetic or optical encoders on the wheel motors tracking exact rotations, paired with an Inertial Measurement Unit (IMU) tracking acceleration and gyroscopic rotation.</p>
+        <p><strong>Dashboard Implementation:</strong> The robot's Navigation stack fuses this data to determine its exact (X, Y) coordinate and Heading (Theta) on the map. The backend parses this quaternion math into a simple 2D heading. The frontend uses this to smoothly animate the robot's avatar across the uploaded floor plan in the <code>RouteEditor.jsx</code> canvas.</p>
+
+        <h3>3. Battery Management System (BMS)</h3>
+        <span class="sensor-tag">ROS Topic: /battery_state</span> <span class="sensor-tag">Type: sensor_msgs/BatteryState</span>
+        <p><strong>Hardware:</strong> Voltage monitors connected directly to the robot's LiPo or SLA batteries.</p>
+        <p><strong>Dashboard Implementation:</strong> A continuous stream of voltage and percentage data is forwarded to the Fleet Status sidebar, ensuring operators can preemptively dock robots before they lose power mid-mission.</p>
+
+        <h3>4. Camera Array (Visual Feed)</h3>
+        <span class="sensor-tag">ROS Topic: /image_raw/compressed</span> <span class="sensor-tag">Type: sensor_msgs/CompressedImage</span>
+        <p><strong>Hardware:</strong> USB Webcams, Intel RealSense depth cameras, or Raspberry Pi Camera modules.</p>
+        <p><strong>Dashboard Implementation:</strong> Due to bandwidth constraints, the dashboard is designed to render compressed JPEG streams (MJPEG). The <code>CameraFeed.jsx</code> component mounts an <code>&lt;img&gt;</code> tag that rapidly refreshes with Base64 payloads or binds to a dedicated WebRTC/MJPEG streaming proxy port on the robot, providing operators with a first-person view (FPV) during manual teleoperation.</p>
+
+        <h3>5. System Diagnostics (CPU/Temp)</h3>
+        <p><strong>Hardware:</strong> Onboard computer (e.g., Raspberry Pi, Jetson Nano) internal thermal sensors.</p>
+        <p><strong>Dashboard Implementation:</strong> The system monitors the core computational health of the robot to prevent thermal throttling or crashes during computationally expensive SLAM (Simultaneous Localization and Mapping) operations.</p>
+    </div>
+
+    <h2>5. Hardware Integration Guide</h2>
+    <div class="card">
+        <p>Follow these steps to transition from the software simulator to a physical robot (e.g., a Raspberry Pi chassis).</p>
+
+        <h3>Step 1: Prepare the Robot Hardware</h3>
+        <ol>
+            <li>Ensure the robot has a functioning onboard computer (Raspberry Pi/Jetson) running Ubuntu Linux.</li>
+            <li>Verify that a ROS environment (ROS Kinetic, Noetic, or ROS 2 Humble) is installed.</li>
+            <li>Ensure the robot's base controller is actively publishing to <code>/odom</code> and subscribing to <code>/cmd_vel</code>.</li>
+        </ol>
+
+        <h3>Step 2: Install the Communication Bridge</h3>
+        <p>The dashboard requires <code>rosbridge_suite</code> to communicate with the robot. Install it via terminal on the robot:</p>
+        <pre><code># For ROS 1 (Noetic)
+sudo apt-get install ros-noetic-rosbridge-server
+roslaunch rosbridge_server rosbridge_websocket.launch port:=9090
+
+# For ROS 2 (Humble)
+sudo apt-get install ros-humble-rosbridge-suite
+ros2 run rosbridge_server rosbridge_websocket --port 9090</code></pre>
+        <p>Make a note of the robot's local IP address (e.g., <code>192.168.1.150</code>). The WebSocket URL will be <code>ws://192.168.1.150:9090</code>.</p>
+
+        <h3>Step 3: Register the Robot in the Dashboard</h3>
+        <ol>
+            <li>Log into the Nexus Fleet Control dashboard using an Administrator account.</li>
+            <li>Access the underlying database configuration (or Robot Management UI if available).</li>
+            <li>Create a new robot record. Set the <code>name</code> and explicitly supply the <code>ros_bridge_url</code> you derived in the previous step.</li>
+            <li>Generate an API Key hash for secure authentication.</li>
+        </ol>
+
+        <h3>Step 4: Network Connectivity</h3>
+        <p>Ensure that the cloud server hosting the Node.js backend can route traffic to the robot's IP address. If the robot is on a private network, you may need a VPN (like Tailscale or ZeroTier) so the cloud server can "reach in" and connect to the robot's port 9090.</p>
+
+        <h3>Step 5: Initialization & Mapping</h3>
+        <ol>
+            <li>Start your Node.js backend. It will detect the registered robot, attempt a WebSocket handshake, and mark it <strong>ONLINE</strong>.</li>
+            <li>Use the physical robot to teleoperate around your facility while running a mapping node (e.g., <code>gmapping</code> or <code>slam_toolbox</code>).</li>
+            <li>Save the generated map as an image file (PNG/PGM).</li>
+            <li>In the dashboard's <strong>Mission Planner</strong>, click "Upload Map", provide the image file, and input the real-world dimensions to scale the Canvas correctly.</li>
+            <li><strong>Complete:</strong> Your robot will now appear on the dashboard map in real-time. You can draw routes and issue commands immediately.</li>
+        </ol>
+    </div>
+
+    <div style="text-align: center; color: var(--text-muted); margin-top: 50px; font-size: 0.9rem; padding-bottom: 20px;">
+        Generated by Antigravity AI &bull; Nexus Fleet Control Cloud Subsystem
+    </div>
+
+</body>
+</html>
+

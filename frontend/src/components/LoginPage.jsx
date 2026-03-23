@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '../services/supabaseClient';
 import './LoginPage.css';
 
 export default function LoginPage({ onLoginSuccess }) {
+    const { t } = useTranslation();
     const [mode, setMode] = useState('login'); // 'login' | 'signup'
     const [step, setStep] = useState('form'); // 'form' | 'otp'
     const [email, setEmail] = useState('');
@@ -101,8 +103,8 @@ export default function LoginPage({ onLoginSuccess }) {
             <div className="login-box-v2 glass-card">
                 <div className="login-header-v2">
                     <span className="login-logo-v2">🤖</span>
-                    <h1 className="glow-text">Robot Control</h1>
-                    <p>{mode === 'login' ? 'Secure Nexus Access' : 'Register New Operative'}</p>
+                    <h1 className="glow-text">{t('app_name')}</h1>
+                    <p>{mode === 'login' ? t('login_subtitle') : t('register_new_operative')}</p>
                 </div>
 
                 {step === 'form' ? (
@@ -120,7 +122,7 @@ export default function LoginPage({ onLoginSuccess }) {
                             </div>
                         )}
                         <div className="input-group-v2">
-                            <label>Email</label>
+                            <label>{t('email_label')}</label>
                             <input
                                 type="email"
                                 placeholder="operator@nexus.io"
@@ -130,7 +132,7 @@ export default function LoginPage({ onLoginSuccess }) {
                             />
                         </div>
                         <div className="input-group-v2">
-                            <label>Password</label>
+                            <label>{t('password_label')}</label>
                             <input
                                 type="password"
                                 placeholder="••••••••"
@@ -141,7 +143,7 @@ export default function LoginPage({ onLoginSuccess }) {
                         </div>
 
                         <button type="submit" disabled={loading} className="login-submit-btn">
-                            {loading ? 'Processing...' : (mode === 'login' ? 'Establish Connection →' : 'Initialize Signup →')}
+                            {loading ? t('processing') : (mode === 'login' ? t('login_btn') : t('initialize_signup'))}
                         </button>
 
                         <div className="otp-actions">

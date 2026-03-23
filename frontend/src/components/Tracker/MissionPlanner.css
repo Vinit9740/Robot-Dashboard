@@ -1,0 +1,345 @@
+/* ====================================================
+   MissionPlanner.css
+   Styles for the map-based route planning components.
+   All tokens reference DesignTokens.css variables.
+==================================================== */
+
+/* ── Shared toolbar / panel styles ─────────────────── */
+.mp-controls-bar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+    padding: 14px 20px;
+    margin-bottom: 16px;
+    border-radius: 14px;
+}
+
+/* override glass-card hover lift for toolbar */
+.mp-controls-bar:hover {
+    transform: none;
+}
+
+.mp-control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.mp-control-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+}
+
+.mp-select,
+.mp-input {
+    height: 36px;
+    padding: 0 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-dark);
+    color: var(--text-main);
+    font-size: 0.85rem;
+    font-family: inherit;
+    outline: none;
+    transition: border-color var(--transition-fast);
+    min-width: 160px;
+}
+
+.mp-select:focus,
+.mp-input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-glow);
+}
+
+.mp-select:disabled,
+.mp-input:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ── Button group ─────────────────────────────────── */
+.mp-btn-group {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-left: auto;
+    flex-wrap: wrap;
+}
+
+.mp-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 36px;
+    padding: 0 16px;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    font-family: inherit;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    white-space: nowrap;
+}
+
+.mp-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    filter: grayscale(0.4);
+}
+
+.mp-btn-save {
+    background: var(--primary-glow);
+    color: var(--primary);
+    border-color: rgba(125, 82, 244, 0.3);
+}
+
+.mp-btn-save:hover:not(:disabled) {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+.mp-btn-clear {
+    background: rgba(100, 116, 139, 0.1);
+    color: var(--text-muted);
+    border-color: var(--border-color);
+}
+
+.mp-btn-clear:hover:not(:disabled) {
+    background: rgba(100, 116, 139, 0.2);
+}
+
+.mp-btn-start {
+    background: rgba(34, 197, 94, 0.12);
+    color: #16a34a;
+    border-color: rgba(34, 197, 94, 0.3);
+}
+
+.mp-btn-start:hover:not(:disabled) {
+    background: rgba(34, 197, 94, 0.22);
+    border-color: rgba(34, 197, 94, 0.6);
+}
+
+.mp-btn-stop {
+    background: rgba(239, 68, 68, 0.1);
+    color: #dc2626;
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+.mp-btn-stop:hover:not(:disabled) {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: rgba(239, 68, 68, 0.6);
+}
+
+/* ── Active mission badge ─────────────────────────── */
+.mp-mission-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    background: rgba(34, 197, 94, 0.1);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #16a34a;
+}
+
+.mp-mission-pulse {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #16a34a;
+    animation: missionPulse 1.2s infinite ease-in-out;
+}
+
+@keyframes missionPulse {
+
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.5;
+        transform: scale(1.4);
+    }
+}
+
+/* ── Upload button ────────────────────────────────── */
+.mp-upload-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.mp-upload-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 36px;
+    padding: 0 16px;
+    border-radius: 8px;
+    border: 1px dashed var(--border-hover);
+    background: var(--primary-glow);
+    color: var(--primary);
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    white-space: nowrap;
+    user-select: none;
+}
+
+.mp-upload-btn:hover {
+    background: var(--primary);
+    color: white;
+    border-style: solid;
+}
+
+.mp-error-msg {
+    font-size: 0.75rem;
+    color: #dc2626;
+}
+
+/* ── Spinner ───────────────────────────────────────── */
+.mp-spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid var(--primary);
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: inline-block;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ── Canvas wrapper ────────────────────────────────── */
+.mp-canvas-wrapper {
+    position: relative;
+    width: 100%;
+    border-radius: 12px;
+    overflow: hidden;
+    background: linear-gradient(135deg, #f0f2f5 0%, #e8ecf1 100%);
+    min-height: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mp-canvas-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    color: var(--text-muted);
+    padding: 60px 20px;
+    text-align: center;
+}
+
+.mp-placeholder-icon {
+    font-size: 3rem;
+    opacity: 0.5;
+}
+
+.mp-canvas-placeholder p {
+    margin: 0;
+    font-size: 0.9rem;
+    max-width: 260px;
+}
+
+/* ── Loading state ────────────────────────────────── */
+.mp-canvas-loading {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background: rgba(240, 242, 245, 0.85);
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    z-index: 5;
+}
+
+
+/* ── Edit mode hint ───────────────────────────────── */
+.mp-edit-hint {
+    position: absolute;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(125, 82, 244, 0.85);
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 5px 14px;
+    border-radius: 20px;
+    pointer-events: none;
+    letter-spacing: 0.3px;
+    backdrop-filter: blur(4px);
+}
+
+/* ── Map selector row ─────────────────────────────── */
+.mp-map-selector-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+
+.mp-map-selector-row label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+/* ── Edit toggle button ───────────────────────────── */
+.mp-edit-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 32px;
+    padding: 0 14px;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    border: 1px solid var(--border-color);
+    background: var(--bg-dark);
+    color: var(--text-muted);
+    transition: all var(--transition-fast);
+}
+
+.mp-edit-toggle.active {
+    background: var(--primary-glow);
+    color: var(--primary);
+    border-color: rgba(125, 82, 244, 0.4);
+}
+
+.mp-edit-toggle:hover {
+    border-color: var(--border-hover);
+}
+
+.mp-waypoint-count {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    margin-left: 4px;
+}
